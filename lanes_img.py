@@ -37,7 +37,7 @@ upper_white = np.uint8([255,255,255])
 white = cv2.cvtColor(img, cv2.COLOR_RGB2HLS)
 
 white_mask = cv2.inRange(white, lower_white,upper_white)
-masked = cv2.bitwise_and(img, img, mask = white_mask)
+masked = cv2.bitwise_and(img, img, mask = white_mask)   #Filter out all colors except for white
 
 gray = cv2.cvtColor(masked, cv2.COLOR_BGR2GRAY)
 blur = cv2.GaussianBlur(gray,(13,13),0)
