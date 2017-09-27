@@ -1,5 +1,7 @@
 import cv2
 import numpy as np
+import math
+from abc import ABCMeta
 
 def filter_region(image, vertices):
     """
@@ -10,7 +12,7 @@ def filter_region(image, vertices):
         cv2.fillPoly(mask, vertices, 255)
     else:
         cv2.fillPoly(mask, vertices, (255,)*mask.shape[2]) # in case, the input image has a channel dimension        
-    return cv2.bitwise_and(image, mask = mask)
+    return cv2.bitwise_and(image,mask)
 def select_region(image):
     """
     It keeps the region surrounded by the `vertices` (i.e. polygon).  Other area is set to 0 (black).
@@ -30,6 +32,40 @@ def Gaussian_Blur(image, kernel_size):
 def Hough_line(image, minLength, maxGap, thresh):
     
     return cv2.HoughLinesP(image, rho = 1, theta = np.pi/180, threshold = thresh, minLineLength = minLength, maxLineGap = maxGap)
+def avg_lines(lines):
+    right_lane = []
+    right_weights = []
+    left_lane = []
+    left_weights = []
+
+    for line in lines:
+        for x1,y1,x2,y2 in line:
+            if x2==x1:
+                continue
+            slope = (y2-y1)/(x2-x1)
+            intercept = y1 - slope*x1
+            length = np.sqrt((y2-y1)**2 +(x2-x1)**2)
+
+        if slope < 0:                   #If slope is negative then it is a left lane
+            left_lane.append((slope,intercept))
+            left_weights.append(length)
+        else:                           #Else it is the right lane                           
+            right_lane.append((slope, intercept))
+            right_weights.append(length)
+
+    if len(left_weights)>0:  
+        avg_left_lane = np.dot(left_weights, left_lane)/np.sum(left_weights) 
+    else:
+        None
+    if len(right_weights)>0:
+        avg_right_lane = np.dot(right_weights,right_lane)/np.sum(right_weights) 
+    else:
+        None
+
+    return avg_right_lane, avg_left_lane
+def Canny_Edge(image, min_thresh, max_thresh):
+
+    return cv2.Canny(image, min_thresh, max_thresh)
 
 img = cv2.imread('solidWhiteRight.jpg')
 
@@ -39,7 +75,7 @@ upper_white = np.uint8([255,255,255])
 white = cv2.cvtColor(img, cv2.COLOR_BGR2HLS)
 
 white_mask = cv2.inRange(white, lower_white,upper_white)
-masked = cv2.bitwise_and(img, img, mask = white_mask)   #Filter out all colors except for white
+masked = cv2.bitwise_and(img, img, white_mask)   #Filter out all colors except for white
 
 gray = cv2.cvtColor(masked, cv2.COLOR_BGR2GRAY)
 blur = Gaussian_Blur(gray, 15)
@@ -47,20 +83,14 @@ edges = cv2.Canny(blur, 50,150)
 edges = select_region(edges)
 
 lines = Hough_line(edges, 20,300,20)
+avg_lines(lines)
 
 for line in lines:
     for x1,y1,x2,y2 in line:
-        cv2.line(img,(x1,y1),(x2,y2),(0,255,0),2)
+        cv2.line(img,(x1,y1),(x2,y2),(0,0,255),2)
+
     
 cv2.imshow('res',img)
-
-
-
-
-
-
-
-
 
 if cv2.waitKey(0) & 0xFF == ord('q'):
 	cv2.destroyAllWindows()
