@@ -1,6 +1,5 @@
 import cv2
 import numpy as np
-#import matplotlib.py
 
 def filter_region(image, vertices):
     """
@@ -11,8 +10,7 @@ def filter_region(image, vertices):
         cv2.fillPoly(mask, vertices, 255)
     else:
         cv2.fillPoly(mask, vertices, (255,)*mask.shape[2]) # in case, the input image has a channel dimension        
-    return cv2.bitwise_and(image, mask)
-
+    return cv2.bitwise_and(image, mask = mask)
 def select_region(image):
     """
     It keeps the region surrounded by the `vertices` (i.e. polygon).  Other area is set to 0 (black).
@@ -25,12 +23,12 @@ def select_region(image):
     top_right    = [cols*0.6, rows*0.6] 
     # the vertices are an array of polygons (i.e array of arrays) and the data type must be integer
     vertices = np.array([[bottom_left, top_left, top_right, bottom_right]], dtype=np.int32)
-    return filter_region(image, vertices)
-
+    return filter_region(image, vertices)   
 def Gaussian_Blur(image, kernel_size):
-    return cv2.GaussianBlur(image,(kernel_size,kernel_size),0)
 
+    return cv2.GaussianBlur(image,(kernel_size,kernel_size),0)
 def Hough_line(image, minLength, maxGap, thresh):
+    
     return cv2.HoughLinesP(image, rho = 1, theta = np.pi/180, threshold = thresh, minLineLength = minLength, maxLineGap = maxGap)
 
 img = cv2.imread('solidWhiteRight.jpg')
