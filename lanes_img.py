@@ -3,6 +3,22 @@ import numpy as np
 import math
 from abc import ABCMeta
 
+
+def filter_white_yellow(image):
+
+    hsl_img = cv2.cvtColor(image, cv2.COLOR_BGR2HLS)
+
+    lower_white = np.uint8([[0,200,0]])
+    upper_white = np.uint8([[255,255,255]])
+    white_color = cv2.inRange(hsl_img, lower_white, upper_white)
+
+    lower_yellow = np.uint8([[10,0,100]])
+    upper_yellow = np.uint8([[40, 255, 255]])
+    yellow_color = cv2.inRange(hsl_img, lower_yellow, upper_yellow)
+
+    white_and_yellow = cv2.bitwise_or(white_color, yellow_color)    #Combine the two masks in order to detect both white and yellow
+    masked = cv2.bitwise_and(image, image, mask = white_and_yellow)
+    return masked
 def filter_region(image, vertices):
     """
     Create the mask using the vertices and apply it to the input image
@@ -28,11 +44,12 @@ def select_region(image):
     return filter_region(image, vertices)   
 def Gaussian_Blur(image, kernel_size):
 
+    ##### Gaussian Blurring improves accuracy when it comes to edge detection #####
     return cv2.GaussianBlur(image,(kernel_size,kernel_size),0)
 def Hough_line(image, minLength, maxGap, thresh):
     
     return cv2.HoughLinesP(image, rho = 1, theta = np.pi/180, threshold = thresh, minLineLength = minLength, maxLineGap = maxGap)
-def avg_lines(lines):
+def avg_lines(lines): #Compute the weighted average of the lines found
     right_lane = []
     right_weights = []
     left_lane = []
@@ -66,21 +83,27 @@ def avg_lines(lines):
 def Canny_Edge(image, min_thresh, max_thresh):
 
     return cv2.Canny(image, min_thresh, max_thresh)
+def compute_line_points(y1, y2, line):
+    if line is None:
+        return None
 
+    slope, intercept = line
+    """ Line Equation: y = mx+b 
+        Knowing y, m and b we can easily compute x from the equation x = (y-b)/m 
+        Notice that all points must be integers otherwise the cv2.line will throw an exception
+    """
+    x1 = int((y1-intercept)/slope)
+    x2 = int((y2-intercept)/slope)
+    y1 = int(y1)
+    y2 = int(y2)
+
+    return ((x1,y1), (x2,y2)) #Return a tuple with the points for the lines
 img = cv2.imread('solidWhiteRight.jpg')
-
-lower_white = np.uint8([0,200,0])
-upper_white = np.uint8([255,255,255])
-
-white = cv2.cvtColor(img, cv2.COLOR_BGR2HLS)
-
-white_mask = cv2.inRange(white, lower_white,upper_white)
-masked = cv2.bitwise_and(img, img, white_mask)   #Filter out all colors except for white
-
+masked = filter_white_yellow(img)
 gray = cv2.cvtColor(masked, cv2.COLOR_BGR2GRAY)
-blur = Gaussian_Blur(gray, 15)
-edges = cv2.Canny(blur, 50,150)
-edges = select_region(edges)
+blur = Gaussian_Blur(gray, 13)                                 
+edge = Canny_Edge(blur, 50,150)
+edges = select_region(edge)
 
 lines = Hough_line(edges, 20,300,20)
 avg_lines(lines)
